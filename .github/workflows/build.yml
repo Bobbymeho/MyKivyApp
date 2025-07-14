@@ -8,8 +8,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
+      ANDROID_HOME: ${{ github.workspace }}/android-sdk
+
     steps:
-      - name: Checkout repo
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -20,16 +24,27 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y zip unzip openjdk-17-jdk python3-pip python3-full
-          python3 -m venv venv
-          source venv/bin/activate
+          sudo apt install -y openjdk-17-jdk unzip zip python3-pip
           pip install --upgrade pip
-          pip install cython virtualenv
-          pip install buildozer
+          pip install cython virtualenv buildozer
+
+      - name: Install Android SDK
+        run: |
+          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
+          cd $ANDROID_SDK_ROOT/cmdline-tools
+          curl -o sdk.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip sdk.zip -d latest
+          rm sdk.zip
+
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=${ANDROID_SDK_ROOT} --licenses
+          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=${ANDROID_SDK_ROOT} \
+            "platform-tools" \
+            "platforms;android-31" \
+            "build-tools;34.0.0" \
+            "ndk;25.1.8937393"
 
       - name: Build APK
         run: |
-          source venv/bin/activate
           buildozer android debug
 
       - name: Upload APK
