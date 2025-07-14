@@ -2,7 +2,7 @@ name: Build Kivy APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build:
@@ -10,11 +10,10 @@ jobs:
 
     env:
       ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
-      ANDROID_HOME: ${{ github.workspace }}/android-sdk
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -23,32 +22,25 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt update
-          sudo apt install -y openjdk-17-jdk unzip zip python3-pip
-          pip install --upgrade pip
-          pip install cython virtualenv buildozer
+          python -m pip install --upgrade pip
+          pip install buildozer
 
-      - name: Install Android SDK
+      - name: Download and install Android SDK
         run: |
-           mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
-           cd $ANDROID_SDK_ROOT/cmdline-tools
-           curl -o sdk.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-           unzip sdk.zip -d temp
-           mv temp/cmdline-tools latest
-           rm -rf temp sdk.zip
-           yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=${ANDROID_SDK_ROOT} --licenses
-           $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=${ANDROID_SDK_ROOT} \
+          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
+          cd $ANDROID_SDK_ROOT/cmdline-tools
+          curl -o sdk.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip sdk.zip -d temp
+          mv temp/cmdline-tools latest
+          rm -rf temp sdk.zip
+
+      - name: Install Android Build Tools
+        run: |
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
             "platform-tools" \
-            "platforms;android-31" \
-            "build-tools;34.0.0" \
-            "ndk;25.1.8937393"
+            "platforms;android-34" \
+            "build-tools;34.0.0"
 
       - name: Build APK
         run: |
           buildozer android debug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: kivy-apk
-          path: bin/*.apk
